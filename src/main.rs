@@ -20,7 +20,7 @@ fn main() -> std::io::Result<()> {
             },
             None => eprintln!("error: file name does not exist"),
         }
-        let _pb = path.with_extension("asm");
+        //let _pb = path.with_extension("asm");
     } 
     Ok(())
 }
