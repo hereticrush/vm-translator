@@ -12,6 +12,7 @@ fn main() -> std::io::Result<()> {
     }
    
     let path = Path::new(&args[1]);
+    assert_eq!("vm", path.extension().unwrap()); 
     if path.exists() {
         let fname = path.clone().to_str();
         match fname {

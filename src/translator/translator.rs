@@ -3,13 +3,16 @@ use std::{collections::HashMap, fs};
 use super::parser::Parser;
 
 fn init_translator() -> Translator {
-    let tr = Translator::new().unwrap(); 
-    tr
+    let tr = Translator::new(); 
+    match tr {
+        Some(tr) => tr,
+        None => panic!("error: cannot initialize translator."),
+    }
 }
 pub fn translate(fname: &str) -> std::io::Result<()> {
     let mut tr = init_translator();
     let res = match tr.read_vm_code(fname) {
-        Ok(opt) => println!("done: {opt:?}"),
+        Ok(opt) => println!("Translation done: {opt:?}"),
         Err(e) => eprintln!("{e:?}"),
     };
     Ok(res)
@@ -37,9 +40,13 @@ impl Translator {
 impl CodeReader for Translator {
    fn read_vm_code(&mut self, fname: &str) -> std::io::Result<()> {
        let contents_raw = fs::read_to_string(fname)?;
-       let tokens: Vec<&str> = contents_raw.split_whitespace().collect();
+       let tokens: Vec<&str> = contents_raw.lines().collect();
        let mut p = Parser::new().unwrap();
-       let opt_res = p.parse_tokens(tokens);
+       let tokens_valid = p.parse_valid_tokens(tokens);
+       match tokens_valid {
+          Ok(tokens) => println!("parsing result: \n {tokens:?}"),
+          Err(e) => eprintln!("{e:?}"),
+       }
        Ok(())
    } 
 }
@@ -56,7 +63,7 @@ impl CodeWriter for Translator {
     }
 }
 
-fn handle_translation(contents: &str, mut w: Box<dyn CodeWriter>) -> std::io::Result<()> {
+fn handle_write(contents: &str, mut w: Box<dyn CodeWriter>) -> std::io::Result<()> {
     
     w.write_hack_asm(); 
     Ok(())
