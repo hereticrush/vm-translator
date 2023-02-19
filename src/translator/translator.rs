@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fs};
+use std::{collections::HashMap, fs, io};
 
 use super::parser::Parser;
 
@@ -23,8 +23,7 @@ trait CodeReader {
 }
 
 trait CodeWriter {
-    fn insert_tokens_to_table(&mut self);
-    fn write_hack_asm(&mut self);
+    fn write_hack_asm(&mut self) -> io::Result<()>;
 }
 
 pub struct Translator {
@@ -38,28 +37,21 @@ impl Translator {
 }
 
 impl CodeReader for Translator {
-   fn read_vm_code(&mut self, fname: &str) -> std::io::Result<()> {
+    
+    fn read_vm_code(&mut self, fname: &str) -> std::io::Result<()> {
        let contents_raw = fs::read_to_string(fname)?;
        let tokens: Vec<&str> = contents_raw.lines().collect();
        let mut p = Parser::new().unwrap();
-       let tokens_valid = p.parse_valid_tokens(tokens);
-       match tokens_valid {
-          Ok(tokens) => println!("parsing result: \n {tokens:?}"),
-          Err(e) => eprintln!("{e:?}"),
-       }
-       Ok(())
+       let opt = p.parse_valid_tokenlines(tokens).unwrap();
+       Ok(opt)
    } 
 }
 
 impl CodeWriter for Translator {
-    fn insert_tokens_to_table(&mut self) {
-        let m = &self.map;
-
-        let _pairs = m.iter().map(|(k, v)| (k, v))
-            .for_each(|pair| println!("{pair:?}"));
-    }
-    fn write_hack_asm(&mut self) {
+    
+    fn write_hack_asm(&mut self) -> io::Result<()> {
         
+        Ok(()) 
     }
 }
 

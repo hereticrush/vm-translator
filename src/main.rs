@@ -1,9 +1,9 @@
-use std::{path::Path, env};
+use std::{path::Path, env, io};
 
 use translator::translator::translate;
 mod translator;
 
-fn main() -> std::io::Result<()> {
+fn main() -> io::Result<()> {
 
     let args: Vec<String> = env::args().collect();
     if args.len() < 2 {
