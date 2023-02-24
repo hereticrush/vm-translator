@@ -1,16 +1,6 @@
-use std::collections::HashMap;
 
-
-enum Command {
-    Add, // 0000 0000
-    Sub,     // 0000 0001
-    Push, // 0000 0010
-    Pop, // 0000 0011
-    Label, // 0000 0100
-    Func, // 0000 0101
-}
-
-enum Segment {
+#[derive(Debug)]
+pub enum Segment {
     StackPointee, // 0000
     Local, // 0001
     Argument, // 0010
@@ -19,56 +9,80 @@ enum Segment {
     That, // 0101
 }
 
-enum Value {
-    Val(u16),
-}
 
+#[derive(Debug)]
 pub enum VmLine {
-    X(Command, Segment, Value),
-    Y(Command),
+    PushPopCommand { cmd_bit: bool, seg: Segment, val: i16 },
+    ArithmeticCommand { cmd_bit: bool }, // 0 -> add, 1 -> sub
 }
 
 #[derive(Debug)]
 pub struct Parser {
-    map: HashMap<usize, String>,
+    current_command: Option<VmLine>,
 }
 
 impl Parser {
     pub fn new() -> Option<Parser> {
-        Some(Parser { map: HashMap::new() })
+        Some(Parser { current_command: None })
     }
-    fn is_valid_line(token: &str) -> bool {
-        if token.is_empty() || token.starts_with("//") {
-            return false; 
-        }
-        true
-    }
-
-    pub fn parse_valid_tokenlines(&mut self, lines: Vec<&str>) -> Result<(), Box<dyn std::error::Error>> {
-        
-        // Flatten the vector of vector of valid vm strs
-        let v: Vec<&str> = lines.iter()
-            .filter_map(|&line| {
-                if Parser::is_valid_line(line) {
-                    Some(line) 
-                } else {
-                    None
+   
+    // FIX THE BUG THAT RESULTS IN INF LOOP
+    pub fn parse(&mut self, token_vector:&mut Vec<&str>) -> Result<(), Box<dyn std::error::Error>> {
+        let current = &mut *token_vector;
+        match current.len() {
+            1 => {
+                let t = *current.get(0).unwrap();
+                match t {
+                    "add" => { 
+                        let cmd = Some(VmLine::ArithmeticCommand { cmd_bit: false });
+                        return self.set_current_command(cmd);
+                    },
+                    "sub" => { 
+                        let cmd = Some(VmLine::ArithmeticCommand { cmd_bit: true });
+                        return self.set_current_command(cmd);
+                    },
+                    _ => {},
                 }
-            }).flat_map(|token| token.split_ascii_whitespace()).collect();
-        v.iter().for_each(|&token| {
-            self.map_to_enums(token);
-        });
-        Ok(println!("parsing done!"))
+            },
+            3 => {
+                let t0 = *current.get(0).unwrap();
+                let t1 = *current.get(1).unwrap();
+                let t2 = *current.get(2).unwrap();
+                let val = t2.parse::<i16>().unwrap();
+
+                let cmd_bit = Parser::set_cmdbit(t0).unwrap();
+                let seg = Parser::set_segment(t1).unwrap();
+
+                let cmd = Some(VmLine::PushPopCommand { cmd_bit, seg, val }); 
+                return self.set_current_command(cmd);
+            },
+            _ => { panic!("not possible"); },
+        } 
+        
+        Ok(())
+    }
+     
+    fn set_current_command(&mut self, vm_line: Option<VmLine>) -> Result<(), Box<dyn std::error::Error>> {
+        self.current_command = vm_line;
+        Ok(()) 
     }
 
-    // [push, static, 10, push, argument, 2, pop, static, 10, add]
-    fn map_to_enums(&mut self, token: &str) -> Option<VmLine> {
-        if token.parse::<u16>().is_ok() {
-            let num = token.parse::<u16>().unwrap();
-            let value = Value::Val(num); 
+    fn set_cmdbit(token: &str) -> Option<bool> {
+        match token {
+            "push" => Some(false),
+            "pop" => Some(true),
+            _ => None,
         } 
-        None
+    }
 
-    } 
-
+    fn set_segment(token: &str) -> Option<Segment> {
+        match token {
+            "local" => Some(Segment::Local),
+            "argument" => Some(Segment::Argument),
+            "static" => Some(Segment::Static),
+            "this" => Some(Segment::This),
+            "that" => Some(Segment::That),
+            _ => None,
+        } 
+    }
 }
