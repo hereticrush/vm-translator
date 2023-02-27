@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fs, io};
+use std::{collections::HashMap, fs, io, cell::RefCell, rc::{Rc, Weak}};
 
 use super::{parser::Parser, codewriter::{IOWrite, CodeWriter}};
 
@@ -11,15 +11,25 @@ fn init_translator() -> Translator {
 }
 pub fn translate(fname: &str) -> std::io::Result<()> {
     let mut tr = init_translator();
-    let res = match tr.read_vm_code(fname) {
-        Ok(opt) => println!("parsing done: {opt:?}"),
+    match tr.read_vm_code(fname) {
+        Ok(_) => tr.notify(&Event::Reading),
         Err(why) => eprintln!("{why:?}"),
     };
-    /*let write_resp = match tr.write_wm_code(fname) {
-        Ok(wopt) => println!("Writing done: {wopt:?}"),
+    match tr.write_wm_code(fname) {
+        Ok(_) => tr.notify(&Event::Writing),
         Err(why) => eprintln!("{why:?}"),
-    };*/
-    Ok(res)
+    };
+    Ok(())
+}
+
+#[derive(Debug)]
+enum Event {
+   Reading,
+   Writing,
+}
+
+trait IOListener {
+    fn notify(&mut self, event: &Event);
 }
 
 trait CodeReader {
@@ -28,18 +38,27 @@ trait CodeReader {
 
 pub struct Translator {
     map: HashMap<u32, String>,
+    state: Option<Event>,
+    pptr: Rc<RefCell<Parser>>,
 }
 
 impl Translator {
     fn new() -> Option<Translator> {
-        Some(Translator { map: HashMap::new() })
+        let map = HashMap::new();
+        let state = None;
+        let pptr = Rc::new(RefCell::new(Parser::new().unwrap()));
+        Some(Translator { map, state, pptr })
     }
 
+    // Entry point to output
     fn write_wm_code(&mut self, fname: &str) -> io::Result<()> {
         let mut w = CodeWriter::with_filepath(fname).unwrap();
-        let wres = match w.write_asm("dd") {
-            Err(why) => panic!("cannot write to file: {why:?}"),
-            Ok(_) => println!("write was successful"),
+        let current_cmd = &self
+            .pptr
+            .borrow_mut().convert_to_asm().unwrap(); 
+        let wres = match w.write_asm(current_cmd) {
+            Err(why) => panic!("cannot write to file {}: {why:?}", w.file_name()),
+            Ok(_) => {},
         };
         Ok(wres) 
     }
@@ -52,6 +71,7 @@ impl Translator {
         self.map.insert(pair.0, pair.1.to_string());
         Ok(())
     }
+
 }
 
 impl CodeReader for Translator {
@@ -77,7 +97,7 @@ impl CodeReader for Translator {
            let mut token_vector = v.split_ascii_whitespace().collect::<Vec<&str>>();
            match p.parse(&mut token_vector) {
                Err(why) => eprintln!("cannot parse token {token_vector:?}: {why:?}"),
-               Ok(opt) => println!("{opt:?} done"),
+               Ok(_) => {},
            };
            
        }
@@ -85,3 +105,12 @@ impl CodeReader for Translator {
    } 
 }
 
+impl IOListener for Translator {
+    fn notify(&mut self, event: &Event) {
+        if let Event::Reading = event {
+            println!("Reading file..");
+        } else if let Event::Writing = event {
+            println!("Writing to file...");
+        }
+    }
+}
