@@ -1,3 +1,5 @@
+use std::collections::VecDeque;
+
 
 #[derive(Debug)]
 pub enum Segment {
@@ -11,7 +13,6 @@ pub enum Segment {
     Pointer, // supplies pointer -> 0 This and pointer -> 1 That
 }
 
-
 #[derive(Debug)]
 pub enum VmLine {
     PushPopCommand { cmd_bit: bool, seg: Segment, val: i16 }, // push -> 0, pop -> 1
@@ -21,15 +22,14 @@ pub enum VmLine {
 
 #[derive(Debug)]
 pub struct Parser {
-    pub current_command: Option<VmLine>,
+    pub commands: VecDeque<Option<VmLine>>,
 }
 
 impl Parser {
     pub fn new() -> Option<Parser> {
-        Some(Parser { current_command: None })
+        Some(Parser { commands: VecDeque::new() })
     }
    
-    // FIND A WAY TO SUPPLY ENUM MAPPING TO CODEWRITER THEN OUTPUT AN HACK ASM STR TO WRITE TO FILE 
     pub fn parse(&mut self, token_vector:&mut Vec<&str>) -> Result<(), Box<dyn std::error::Error>> {
         let current = &mut *token_vector;
         match current.len() {
@@ -37,37 +37,35 @@ impl Parser {
                 let t = *current.get(0).unwrap();
                 let cmd_bit = Parser::set_cmdbit(t).unwrap();
                 let cmd = Some(VmLine::ArithmeticCommand { cmd_bit });
-                return self.set_current_command(cmd);
+                Ok(self.commands.push_back(cmd))
             },
             3 => {
                 let t0 = *current.get(0).unwrap();
                 let t1 = *current.get(1).unwrap();
                 let t2 = *current.get(2).unwrap();
                 let val = t2.parse::<i16>().unwrap_or_else(|_| 0);
-                println!("{t0:?} {t1:?} {t2:?} {val:?}");
                 let cmd_bit = Parser::set_cmdbit(t0).unwrap();
                 let seg = Parser::set_segment(t1).unwrap();
 
                 let cmd = Some(VmLine::PushPopCommand { cmd_bit, seg, val }); 
-                return self.set_current_command(cmd);
+                Ok(self.commands.push_back(cmd))
             },
             _ => panic!("not possible"),
-        } 
+        }
     }
 
-    pub fn convert_to_asm(&mut self) -> Option<String> {
-        let line = match &self.current_command {
-            Some(VmLine::PushPopCommand { cmd_bit, seg, val }) => format!("This is push_pop line {} {:?} {}", cmd_bit, seg, val),      
-            Some(VmLine::ArithmeticCommand { cmd_bit }) => format!("This is add sub line {}", cmd_bit),
-            Some(VmLine::PointerCommand { cmd_bit, val }) => format!("This or that line {} {}", cmd_bit, val),
-            None => format!(""),
+    /*
+     *          Some(VmLine::PushPopCommand { cmd_bit, seg, val }) => format!("This is push_pop line {} {:?} {}", cmd_bit, seg, val),      
+                Some(VmLine::ArithmeticCommand { cmd_bit }) => format!("This is add sub line {}", cmd_bit),
+                Some(VmLine::PointerCommand { cmd_bit, val }) => format!("This or that line {} {}", cmd_bit, val),
+                None => format!(""),
+     * */
+    // FIX THIS ASAP
+    pub fn convert_to_asm(&mut self) -> Result<(), Box<dyn std::error::Error>> {
+        while let Some(vml) = self.commands.pop_front() {
+            println!("{vml:?}");
         };
-        Some(line)
-    }
-     
-    fn set_current_command(&mut self, vm_line: Option<VmLine>) -> Result<(), Box<dyn std::error::Error>> {
-        self.current_command = vm_line;
-        Ok(()) 
+        Ok(())
     }
 
     fn set_cmdbit(token: &str) -> Option<bool> {
