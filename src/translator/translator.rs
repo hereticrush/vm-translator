@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fs, io, cell::{RefCell, Cell}, rc::{Rc, Weak}};
+use std::{fs, io, cell::RefCell, rc::Rc};
 
 use super::{parser::Parser, codewriter::{IOWrite, CodeWriter}};
 
@@ -59,17 +59,17 @@ impl Translator {
     fn write_wm_code(&mut self, fname: &str) -> io::Result<()> {
         let _ws = self.set_state(Event::Writing);
         let mut w = CodeWriter::with_filepath(fname).unwrap();
-        let c = self.pptr.borrow_mut().convert_to_asm().unwrap();
-        let wres = match w.write_asm("something") {
+        let sptr = self.pptr.borrow_mut().convert_to_asm().unwrap();
+        let wres = match w.write_asm(sptr.as_str()) {
             Err(why) => panic!("cannot write to file {}: {why:?}", w.file_name()),
             Ok(_) => {},
         };
         Ok(wres) 
     }
 
-    fn display_vector(&self) {
+    /*fn display_vector(&self) {
         self.vptr.borrow().iter().for_each(|p| println!("{p:?}"));
-    }
+    }*/
 
     fn store_pair_to_vec(&mut self, pair: (u32, &str)) -> Result<(), Box<dyn std::error::Error>> {
         self.vptr.borrow_mut().push((pair.0, pair.1.to_string()));
