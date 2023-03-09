@@ -1,4 +1,4 @@
-use std::{fs::{self, File, OpenOptions}, path::Path, io::{self, Write}};
+use std::{fs::{File, OpenOptions}, path::Path, io::{self, Write}};
 
 pub trait IOWrite {
    fn write_asm(&mut self, result_line: &str) -> io::Result<()>;

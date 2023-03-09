@@ -100,7 +100,7 @@ impl CodeReader for Translator {
        self.vptr.borrow_mut().sort_by_key(|p| p.0);
        for (_, v) in self.vptr.borrow().iter() {
            let mut token_vector = v.split_ascii_whitespace().collect::<Vec<&str>>();
-           match self.pptr.borrow_mut().parse_better(&mut token_vector) {
+           match self.pptr.borrow_mut().parse(&mut token_vector) {
                Err(why) => eprintln!("cannot parse token {token_vector:?}: {why:?}"),
                Ok(_) => {},
            };
