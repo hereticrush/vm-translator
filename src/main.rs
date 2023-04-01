@@ -2,12 +2,12 @@ use std::{path::Path, env, io};
 
 use translator::translator::translate;
 mod translator;
-
+const PROGRAM_NAME: &str = "vm-translator";
 fn main() -> io::Result<()> {
 
     let args: Vec<String> = env::args().collect();
     if args.len() < 2 {
-        eprintln!("Usage: {} <infile>", &args[0]);
+        eprintln!("Usage: {PROGRAM_NAME} <infile>");
         return Ok(());
     }
    
